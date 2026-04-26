@@ -15,13 +15,13 @@
 	"icon": "assets/fourth-dimension/icon.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": [
-			"com.dimension.fourthdimension.FourthDimension"
-		],
-		"fabric-datagen": [
-			"com.dimension.fourthdimension.FourthDimensionDataGenerator"
-		]
-	},
+    "main": [
+      "com.dimension.fourthdimension.FourthDimension"
+    ],
+    "client": [
+      "com.dimension.fourthdimension.FourthDimensionClient"
+    ]
+  },
 	"mixins": [
 		"fourth-dimension.mixins.json"
 	],
