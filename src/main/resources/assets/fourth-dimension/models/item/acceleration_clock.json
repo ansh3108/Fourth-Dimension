@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fourth-dimension:item/rewind_pocketwatch"
+    "layer0": "fourth-dimension:item/acceleration_clock"
   }
 }
