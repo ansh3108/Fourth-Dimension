@@ -31,5 +31,11 @@ public class ModItems {
             entries.add(ACCELERATION_CLOCK);
         });
     }
+
+    public static final Item CHRONO_ANCHOR = Registry.register(
+        Registries.ITEM, 
+        Identifier.of(FourthDimension.MOD_ID, "chrono_anchor"),
+        new ChronoAnchorItem(new Item.Settings().maxCount(1))
+    );
 }
 
