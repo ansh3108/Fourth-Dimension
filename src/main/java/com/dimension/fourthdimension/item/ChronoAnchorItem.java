@@ -1,7 +1,7 @@
 package com.dimension.fourthdimension.item;
 
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomData;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -13,10 +13,11 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
+import java.util.Set;
 
 public class ChronoAnchorItem extends Item {
     public ChronoAnchorItem(Settings settings) {
@@ -24,45 +25,43 @@ public class ChronoAnchorItem extends Item {
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+    public ActionResult use(World world, PlayerEntity user, Hand hand) {
         ItemStack stack = user.getStackInHand(hand);
 
-        if (world.isClient) {
-            return TypedActionResult.success(stack);
+        if (world.isClient()) {
+            return ActionResult.SUCCESS;
         }
 
-        CustomData customData = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, CustomData.DEFAULT);
+        NbtComponent customData = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT);
         NbtCompound nbt = customData.copyNbt();
 
-        if (nbt.contains("AnchorSet") && nbt.getBoolean("AnchorSet")) {
-            
-            double x = nbt.getDouble("PosX");
-            double y = nbt.getDouble("PosY");
-            double z = nbt.getDouble("PosZ");
-            float yaw = nbt.getFloat("Yaw");
-            float pitch = nbt.getFloat("Pitch");
-            String dim = nbt.getString("Dimension");
-            float health = nbt.getFloat("Health");
-            int food = nbt.getInt("Food");
+        if (nbt.contains("AnchorSet") && nbt.getBoolean("AnchorSet").orElse(false)) {
+            double x = nbt.getDouble("PosX").orElse(0.0);
+            double y = nbt.getDouble("PosY").orElse(0.0);
+            double z = nbt.getDouble("PosZ").orElse(0.0);
+            float yaw = nbt.getFloat("Yaw").orElse(0.0f);
+            float pitch = nbt.getFloat("Pitch").orElse(0.0f);
+            String dim = nbt.getString("Dimension").orElse("minecraft:overworld");
+            float health = nbt.getFloat("Health").orElse(20.0f);
+            int food = nbt.getInt("Food").orElse(20);
 
-            ServerPlayerEntity serverPlayer = (ServerPlayerEntity) user;
-            ServerWorld targetWorld = serverPlayer.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(dim)));
-
-            if (targetWorld != null) {
-                serverPlayer.teleport(targetWorld, x, y, z, yaw, pitch);
+            if (world.getServer() != null) {
+                ServerWorld targetWorld = world.getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(dim)));
                 
-                serverPlayer.setHealth(health);
-                serverPlayer.getHungerManager().setFoodLevel(food);
+                if (targetWorld != null && user instanceof ServerPlayerEntity serverPlayer) {
+                    serverPlayer.teleport(targetWorld, x, y, z, Set.of(), yaw, pitch, true);
+                    serverPlayer.setHealth(health);
+                    serverPlayer.getHungerManager().setFoodLevel(food);
 
-                nbt.putBoolean("AnchorSet", false);
-                stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
+                    nbt.putBoolean("AnchorSet", false);
+                    stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
 
-                world.playSound(null, user.getBlockPos(), SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0F, 1.0F);
-                user.sendMessage(Text.literal("§dTimeline restored."), true);
-                
-                user.getItemCooldownManager().set(this, 100); 
+                    world.playSound(null, user.getBlockPos(), SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0F, 1.0F);
+                    user.sendMessage(Text.literal("§dTimeline restored."), true);
+                    
+                    user.getItemCooldownManager().set(stack, 100); 
+                }
             }
-
         } else {
             nbt.putBoolean("AnchorSet", true);
             nbt.putDouble("PosX", user.getX());
@@ -74,12 +73,12 @@ public class ChronoAnchorItem extends Item {
             nbt.putFloat("Health", user.getHealth());
             nbt.putInt("Food", user.getHungerManager().getFoodLevel());
 
-            stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
+            stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
 
             world.playSound(null, user.getBlockPos(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 1.0F, 1.0F);
             user.sendMessage(Text.literal("§bSpatial anchor locked."), true);
         }
 
-        return TypedActionResult.success(stack);
+        return ActionResult.SUCCESS;
     }
 }
